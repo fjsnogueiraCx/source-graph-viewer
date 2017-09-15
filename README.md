@@ -18,4 +18,10 @@ To start the viewer (web app), you have two options:
 * execute `main` method from `org.sonar.java.viewer.Viewer` class;
 * build and run the web app using command line `mvn exec:java`.
 
-Then, open your web browser and navigate to `http://localhost:9999`. Note that default port (`9999`) is currently hardcoded. 
+Then, open your web browser and navigate to `http://localhost:9999`. Note that default port (`9999`) is currently hardcoded.
+
+License
+--------
+
+Copyright 2008-2017 SonarSource.
+Licensed under the [GNU Lesser General Public License, Version 3.0](http://www.gnu.org/licenses/lgpl.txt)
