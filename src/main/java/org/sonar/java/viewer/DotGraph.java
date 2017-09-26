@@ -19,10 +19,10 @@
  */
 package org.sonar.java.viewer;
 
+import org.sonar.java.viewer.dto.CommonDto;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
 
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -108,7 +108,7 @@ public abstract class DotGraph {
     public abstract Highlighting highlighting();
 
     @CheckForNull
-    public abstract JsonObject details();
+    public abstract CommonDto details();
 
     public abstract String toDot();
 
@@ -124,11 +124,11 @@ public abstract class DotGraph {
         .collect(Collectors.joining(","));
     }
 
-    private static String escape(@Nullable JsonValue jsonValue) {
-      if (jsonValue == null) {
+    private static String escape(@Nullable CommonDto dto) {
+      if (dto == null) {
         return null;
       }
-      return jsonValue.toString().replaceAll("\"", ESCAPE_CHAR);
+      return dto.toJson().replaceAll("\"", ESCAPE_CHAR);
     }
   }
 

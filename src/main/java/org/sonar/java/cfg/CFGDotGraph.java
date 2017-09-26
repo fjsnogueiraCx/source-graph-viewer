@@ -20,9 +20,9 @@
 package org.sonar.java.cfg;
 
 import org.sonar.java.viewer.DotGraph;
+import org.sonar.java.viewer.dto.CommonDto;
 
 import javax.annotation.CheckForNull;
-import javax.json.JsonObject;
 
 import java.util.List;
 
@@ -92,7 +92,7 @@ public class CFGDotGraph extends DotGraph {
     }
 
     @Override
-    public JsonObject details() {
+    public CommonDto details() {
       return null;
     }
   }
@@ -137,7 +137,7 @@ public class CFGDotGraph extends DotGraph {
     }
 
     @Override
-    public JsonObject details() {
+    public CommonDto details() {
       return null;
     }
 

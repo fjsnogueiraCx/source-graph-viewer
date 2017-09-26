@@ -19,28 +19,29 @@
  */
 package org.sonar.java.se;
 
+import org.sonar.java.se.dto.EdgeDetailsDto;
+import org.sonar.java.se.dto.MethodYieldDto;
+import org.sonar.java.se.dto.SvWithConstraintsDto;
+import org.sonar.java.se.dto.SvWithSymbolDto;
 import org.sonar.java.se.symbolicvalues.SymbolicValue;
 import org.sonar.java.viewer.DotGraph;
-import org.sonar.java.viewer.JsonHelper;
 
 import javax.annotation.CheckForNull;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 
 import java.util.Comparator;
-import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class EGDotEdge extends DotGraph.Edge {
 
   private final ExplodedGraph.Edge edge;
+  private final EdgeDetailsDto details;
 
   public EGDotEdge(int from, int to, ExplodedGraph.Edge edge) {
     super(from, to);
     this.edge = edge;
+    this.details = buildDetails();
   }
 
   @Override
@@ -57,7 +58,7 @@ public class EGDotEdge extends DotGraph.Edge {
   @CheckForNull
   @Override
   public DotGraph.Highlighting highlighting() {
-    if (hasYields()) {
+    if (!edge.yields().isEmpty()) {
       return DotGraph.Highlighting.YIELD_EDGE;
     } else if (edge.child.programState.peekValue() instanceof SymbolicValue.ExceptionalSymbolicValue) {
       return DotGraph.Highlighting.EXCEPTION_EDGE;
@@ -66,56 +67,30 @@ public class EGDotEdge extends DotGraph.Edge {
   }
 
   @Override
-  public JsonObject details() {
-    JsonObjectBuilder builder = Json.createObjectBuilder();
-    JsonHelper.addIfNotNull(builder, "learnedConstraints", learnedConstraints());
-    JsonHelper.addIfNotNull(builder, "learnedAssociations", learnedAssociations());
-    JsonHelper.addIfNotNull(builder, "selectedMethodYields", yields());
-    return builder.build();
+  public EdgeDetailsDto details() {
+    return details;
   }
 
-  @CheckForNull
-  private JsonArray learnedConstraints() {
-    Set<LearnedConstraint> learnedConstraints = edge.learnedConstraints();
-    if (learnedConstraints.isEmpty()) {
-      return null;
-    }
-    return JsonHelper.toArraySortedByField(learnedConstraints.stream().map(EGDotEdge::toJsonObject), "sv");
+  private EdgeDetailsDto buildDetails() {
+    return new EdgeDetailsDto(learnedConstraints(), learnedAssociations(), yields());
   }
 
-  private static JsonObject toJsonObject(LearnedConstraint lc) {
-    return Json.createObjectBuilder()
-      .add("sv", lc.sv.toString())
-      .add("constraint", lc.constraint.toString())
-      .build();
+  private List<SvWithConstraintsDto> learnedConstraints() {
+    return edge.learnedConstraints().stream()
+      .map(lc -> new SvWithConstraintsDto(lc.sv.toString(), lc.constraint.toString()))
+      .sorted()
+      .collect(Collectors.toList());
   }
 
-  @CheckForNull
-  private JsonArray learnedAssociations() {
-    Set<LearnedAssociation> learnedAssociations = edge.learnedAssociations();
-    if (learnedAssociations.isEmpty()) {
-      return null;
-    }
-    return JsonHelper.toArraySortedByField(learnedAssociations.stream().map(EGDotEdge::toJsonObject), "sv");
+  private List<SvWithSymbolDto> learnedAssociations() {
+    return edge.learnedAssociations().stream()
+      .map(la -> new SvWithSymbolDto(la.sv.toString(), la.symbol.toString()))
+      .sorted()
+      .collect(Collectors.toList());
   }
 
-  private static final JsonObject toJsonObject(LearnedAssociation la) {
-    return Json.createObjectBuilder()
-      .add("sv", la.sv.toString())
-      .add("symbol", la.symbol.toString())
-      .build();
-  }
-
-  private boolean hasYields() {
-    return !edge.yields().isEmpty();
-  }
-
-  @CheckForNull
-  private JsonArray yields() {
-    if (!hasYields()) {
-      return null;
-    }
-    return JsonHelper.toArray(edge.yields().stream().map(EGDotNode::yield));
+  private List<MethodYieldDto> yields() {
+    return edge.yields().stream().map(EGDotNode::yield).collect(Collectors.toList());
   }
 
 }

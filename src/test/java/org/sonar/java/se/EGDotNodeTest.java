@@ -25,10 +25,15 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.java.cfg.CFG;
-import org.sonar.java.se.ExplodedGraph.Node;
 import org.sonar.java.se.constraint.BooleanConstraint;
 import org.sonar.java.se.constraint.ConstraintsByDomain;
 import org.sonar.java.se.constraint.ObjectConstraint;
+import org.sonar.java.se.dto.HappyPathMethodYieldDto;
+import org.sonar.java.se.dto.MethodYieldDto;
+import org.sonar.java.se.dto.NodeDetailsDto;
+import org.sonar.java.se.dto.NodeDetailsWithYieldDto;
+import org.sonar.java.se.dto.SvWithConstraintsDto;
+import org.sonar.java.se.symbolicvalues.SymbolicValue;
 import org.sonar.java.se.xproc.BehaviorCache;
 import org.sonar.java.se.xproc.HappyPathYield;
 import org.sonar.java.se.xproc.MethodBehavior;
@@ -36,15 +41,31 @@ import org.sonar.java.viewer.DotGraph;
 import org.sonar.java.viewer.Viewer;
 import org.sonar.plugins.java.api.semantic.Symbol;
 
-import javax.json.JsonObject;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EGDotNodeTest {
+  private static final Symbol A_SYMBOL = mockSymbol("a");
+  private static final SymbolicValue SV_42 = mockSymbolicValue(42);
+  private static final SymbolicValue SV_21 = mockSymbolicValue(21);
+
   private BehaviorCache mockBehaviorCache;
   private ExplodedGraph eg;
+
+  private static Symbol mockSymbol(String symbolName) {
+    Symbol mock = Mockito.mock(Symbol.class);
+    Mockito.when(mock.toString()).thenReturn(symbolName);
+    Mockito.when(mock.name()).thenReturn(symbolName);
+    return mock;
+  }
+
+  private static SymbolicValue mockSymbolicValue(int id) {
+    SymbolicValue sv = Mockito.mock(SymbolicValue.class);
+    Mockito.when(sv.toString()).thenReturn("SV_" + id);
+    return sv;
+  }
 
   @Before
   public void setUp() {
@@ -63,11 +84,119 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
 
     // no parent, fake id of first block being 42, block id being 0
-    Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 42);
 
     assertThat(egDotNode.highlighting()).isEqualTo(DotGraph.Highlighting.LOST_NODE);
+  }
 
+  @Test
+  public void node_contains_program_point() {
+    String source = "class A {"
+      + "  void foo() {"
+      + "    doSomething();"
+      + "  }"
+      + "}";
+
+    Viewer.Base base = new Viewer.Base(source);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    NodeDetailsDto details = egDotNode.details();
+
+    assertThat(details.ppKey).isEqualTo("B1.0");
+  }
+
+  @Test
+  public void node_contains_values() {
+    String source = "class A {"
+      + "  void foo() {"
+      + "    doSomething();"
+      + "  }"
+      + "}";
+
+    Viewer.Base base = new Viewer.Base(source);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    NodeDetailsDto details = egDotNode.details();
+
+    assertThat(details.psValues).isEmpty();
+
+    ProgramState newPs = node.programState.put(A_SYMBOL, SV_42);
+    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    details = egDotNode.details();
+
+    assertThat(details.psValues).hasSize(1);
+    assertThat(details.psValues.get(0).sv).isEqualTo("SV_42");
+    assertThat(details.psValues.get(0).symbol).isEqualTo("a");
+  }
+
+  @Test
+  public void node_contains_constraints() {
+    String source = "class A {"
+      + "  void foo() {"
+      + "    doSomething();"
+      + "  }"
+      + "}";
+
+    Viewer.Base base = new Viewer.Base(source);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    NodeDetailsDto details = egDotNode.details();
+
+    // contains starting SVs TRUE, FALSE, NULL
+    assertThat(details.psConstraints).hasSize(3);
+    assertThat(details.psConstraints).contains(new SvWithConstraintsDto("SV_NULL", "NULL"));
+    assertThat(details.psConstraints).contains(new SvWithConstraintsDto("SV_FALSE", Arrays.asList("FALSE", "NOT_NULL")));
+    assertThat(details.psConstraints).contains(new SvWithConstraintsDto("SV_TRUE", Arrays.asList("NOT_NULL", "TRUE")));
+
+    ProgramState newPs = node.programState.addConstraint(SV_42, ObjectConstraint.NOT_NULL);
+    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    details = egDotNode.details();
+
+    assertThat(details.psConstraints).hasSize(4);
+    assertThat(details.psConstraints).contains(new SvWithConstraintsDto("SV_42", "NOT_NULL"));
+  }
+
+  @Test
+  public void node_contains_elements_of_stack() {
+    String source = "class A {"
+      + "  void foo() {"
+      + "    doSomething();"
+      + "  }"
+      + "}";
+
+    Viewer.Base base = new Viewer.Base(source);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    NodeDetailsDto details = egDotNode.details();
+
+    assertThat(details.psStack).isEmpty();
+
+    ProgramState newPs = node.programState.stackValue(SV_42);
+    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    details = egDotNode.details();
+
+    assertThat(details.psStack).hasSize(1);
+    assertThat(details.psStack.get(0).sv).isEqualTo("SV_42");
+    assertThat(details.psStack.get(0).symbol).isNull();
+
+    newPs = node.programState.stackValue(SV_21, A_SYMBOL);
+    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    details = egDotNode.details();
+
+    assertThat(details.psStack).hasSize(2);
+    assertThat(details.psStack.get(0).sv).isEqualTo("SV_21");
+    assertThat(details.psStack.get(0).symbol).isEqualTo("a");
+    assertThat(details.psStack.get(1).sv).isEqualTo("SV_42");
+    assertThat(details.psStack.get(1).symbol).isNull();
   }
 
   @Test
@@ -80,12 +209,11 @@ public class EGDotNodeTest {
 
     Viewer.Base base = new Viewer.Base(source);
 
-    Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
-    JsonObject details = egDotNode.details();
-    assertThat(details.get("methodName")).isNull();
-    assertThat(details.get("methodYields")).isNull();
+    NodeDetailsDto details = egDotNode.details();
+    assertThat(details).isNotInstanceOf(NodeDetailsWithYieldDto.class);
   }
 
   @Test
@@ -99,12 +227,11 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
 
     // node of method invocation
-    Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
-    JsonObject details = egDotNode.details();
-    assertThat(details.get("methodName")).isNull();
-    assertThat(details.get("methodYields")).isNull();
+    NodeDetailsDto details = egDotNode.details();
+    assertThat(details).isNotInstanceOf(NodeDetailsWithYieldDto.class);
   }
 
   @Test
@@ -130,19 +257,28 @@ public class EGDotNodeTest {
       }
     });
 
-    Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
-    JsonObject details = egDotNode.details();
+    NodeDetailsDto details = egDotNode.details();
+    assertThat(details).isExactlyInstanceOf(NodeDetailsWithYieldDto.class);
 
-    JsonValue methodName = details.get("methodName");
-    assertThat(methodName).isNotNull();
-    assertThat(methodName.toString()).isEqualTo("\"doSomething\"");
+    NodeDetailsWithYieldDto detailsWithYield = (NodeDetailsWithYieldDto) details;
 
-    JsonValue yields = details.get("methodYields");
+    assertThat(detailsWithYield.methodName).isNotNull();
+    assertThat(detailsWithYield.methodName).isEqualTo("doSomething");
+
+    List<MethodYieldDto> yields = detailsWithYield.methodYields;
     assertThat(yields).isNotNull();
-    assertThat(yields.getValueType()).isEqualTo(ValueType.ARRAY);
-    assertThat(yields.toString()).isEqualTo("[{\"params\":[],\"result\":[\"no constraint\"],\"resultIndex\":-1}]");
+    assertThat(yields).hasSize(1);
+
+    MethodYieldDto yield0 = yields.get(0);
+    assertThat(yield0.params).isEmpty();
+    assertThat(yield0).isInstanceOf(HappyPathMethodYieldDto.class);
+
+    HappyPathMethodYieldDto hpy0 = (HappyPathMethodYieldDto) yield0;
+    assertThat(hpy0.resultIndex).isEqualTo(-1);
+    assertThat(hpy0.result).containsExactly("no constraint");
   }
 
   @Test
@@ -168,29 +304,41 @@ public class EGDotNodeTest {
       }
     });
 
-    Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
-    JsonObject details = egDotNode.details();
+    NodeDetailsDto details = egDotNode.details();
+    assertThat(details).isExactlyInstanceOf(NodeDetailsWithYieldDto.class);
 
-    JsonValue methodName = details.get("methodName");
-    assertThat(methodName).isNotNull();
-    assertThat(methodName.toString()).isEqualTo("\"doSomething\"");
+    NodeDetailsWithYieldDto detailsWithYield = (NodeDetailsWithYieldDto) details;
 
-    JsonValue yields = details.get("methodYields");
+    assertThat(detailsWithYield.methodName).isNotNull();
+    assertThat(detailsWithYield.methodName).isEqualTo("doSomething");
+
+    List<MethodYieldDto> yields = detailsWithYield.methodYields;
     assertThat(yields).isNotNull();
-    assertThat(yields.getValueType()).isEqualTo(ValueType.ARRAY);
+    assertThat(yields).hasSize(1);
+
+    MethodYieldDto yield0 = yields.get(0);
+    assertThat(yield0.params).isEmpty();
+    assertThat(yield0).isInstanceOf(HappyPathMethodYieldDto.class);
+
+    HappyPathMethodYieldDto hpy0 = (HappyPathMethodYieldDto) yield0;
+    assertThat(hpy0.resultIndex).isEqualTo(2);
     // order is alphabetical for constraint
-    assertThat(yields.toString()).isEqualTo("[{\"params\":[],\"result\":[\"FALSE\",\"NOT_NULL\"],\"resultIndex\":2}]");
+    assertThat(hpy0.result).containsExactly("FALSE", "NOT_NULL");
   }
 
+  private ExplodedGraph.Node newNode(CFG.Block block, int i) {
+    return newNode(block, i, ProgramState.EMPTY_STATE);
+  }
 
-  private Node newNode(CFG.Block block, int i) {
+  private ExplodedGraph.Node newNode(CFG.Block block, int i, ProgramState ps) {
     ProgramPoint pp = new ProgramPoint(block);
     for (int j = 0; j < i; j++) {
       pp = pp.next();
     }
-    return eg.node(pp, ProgramState.EMPTY_STATE);
+    return eg.node(pp, ps);
   }
 
 }

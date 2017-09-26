@@ -31,7 +31,6 @@ import org.apache.http.util.EntityUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import spark.utils.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import spark.utils.IOUtils;
 
 public class ViewerTest {
 
@@ -171,7 +172,7 @@ public class ViewerTest {
     assertThat(dotEG).isNotEmpty();
     // check for correctly built yields
     assertThat(dotEG).contains("?methodName?:?bar?");
-    assertThat(dotEG).contains("?methodYields?:[{?params?:[],?result?:[?NOT_NULL?,?TRUE?],?resultIndex?:-1}]");
+    assertThat(dotEG).contains("?methodYields?:[{?result?:[?NOT_NULL?,?TRUE?],?resultIndex?:-1,?params?:[]}]");
 
     assertThat(values.get("errorMessage")).isEmpty();
     assertThat(values.get("errorStackTrace")).isEmpty();

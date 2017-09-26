@@ -21,11 +21,11 @@ package org.sonar.java.ast;
 
 import org.sonar.java.model.JavaTree;
 import org.sonar.java.viewer.DotGraph;
+import org.sonar.java.viewer.dto.CommonDto;
 import org.sonar.plugins.java.api.tree.SyntaxToken;
 import org.sonar.plugins.java.api.tree.Tree;
 
 import javax.annotation.CheckForNull;
-import javax.json.JsonObject;
 
 public class ASTDotGraph extends DotGraph {
 
@@ -119,7 +119,7 @@ public class ASTDotGraph extends DotGraph {
     }
 
     @Override
-    public JsonObject details() {
+    public CommonDto details() {
       return null;
     }
 
@@ -142,7 +142,7 @@ public class ASTDotGraph extends DotGraph {
     }
 
     @Override
-    public JsonObject details() {
+    public CommonDto details() {
       return null;
     }
 

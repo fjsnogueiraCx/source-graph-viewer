@@ -25,13 +25,17 @@ import org.mockito.Mockito;
 import org.sonar.java.cfg.CFG;
 import org.sonar.java.se.constraint.BooleanConstraint;
 import org.sonar.java.se.constraint.ObjectConstraint;
+import org.sonar.java.se.dto.EdgeDetailsDto;
+import org.sonar.java.se.dto.MethodYieldDto;
+import org.sonar.java.se.dto.SvWithConstraintsDto;
+import org.sonar.java.se.dto.SvWithSymbolDto;
 import org.sonar.java.se.symbolicvalues.SymbolicValue;
 import org.sonar.java.se.xproc.MethodYield;
 import org.sonar.plugins.java.api.semantic.Symbol;
 
 import javax.annotation.Nullable;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -108,19 +112,18 @@ public class EGDotEdgeTest {
       .addConstraint(SV_42, BooleanConstraint.FALSE));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    JsonObject details = new EGDotEdge(1, 2, edge).details();
+    EdgeDetailsDto details = new EGDotEdge(1, 2, edge).details();
 
-    JsonArray learnedConstraints = details.getJsonArray("learnedConstraints");
-    assertThat(learnedConstraints).isNotNull();
-    assertThat(learnedConstraints).hasSize(2);
+    assertThat(details.learnedConstraints).isNotNull();
+    assertThat(details.learnedConstraints).hasSize(2);
 
-    JsonObject lc1 = (JsonObject) learnedConstraints.get(0);
-    assertThat(lc1.getString("sv")).isEqualTo("SV_21");
-    assertThat(lc1.getString("constraint")).isEqualTo("NOT_NULL");
+    SvWithConstraintsDto lc1 = details.learnedConstraints.get(0);
+    assertThat(lc1.sv).isEqualTo("SV_21");
+    assertThat(lc1.constraints).containsOnly("NOT_NULL");
 
-    JsonObject lc2 = (JsonObject) learnedConstraints.get(1);
-    assertThat(lc2.getString("sv")).isEqualTo("SV_42");
-    assertThat(lc2.getString("constraint")).isEqualTo("FALSE");
+    SvWithConstraintsDto lc2 = details.learnedConstraints.get(1);
+    assertThat(lc2.sv).isEqualTo("SV_42");
+    assertThat(lc2.constraints).containsOnly("FALSE");
   }
 
   @Test
@@ -131,19 +134,18 @@ public class EGDotEdgeTest {
       .put(B_SYMBOL, SV_21));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    JsonObject details = new EGDotEdge(1, 2, edge).details();
+    EdgeDetailsDto details = new EGDotEdge(1, 2, edge).details();
 
-    JsonArray learnedAssociations = details.getJsonArray("learnedAssociations");
-    assertThat(learnedAssociations).isNotNull();
-    assertThat(learnedAssociations).hasSize(2);
+    assertThat(details.learnedAssociations).isNotNull();
+    assertThat(details.learnedAssociations).hasSize(2);
 
-    JsonObject la1 = (JsonObject) learnedAssociations.get(0);
-    assertThat(la1.getString("sv")).isEqualTo("SV_21");
-    assertThat(la1.getString("symbol")).isEqualTo("b");
+    SvWithSymbolDto la1 = details.learnedAssociations.get(0);
+    assertThat(la1.sv).isEqualTo("SV_21");
+    assertThat(la1.symbol).isEqualTo("b");
 
-    JsonObject la2 = (JsonObject) learnedAssociations.get(1);
-    assertThat(la2.getString("sv")).isEqualTo("SV_42");
-    assertThat(la2.getString("symbol")).isEqualTo("a");
+    SvWithSymbolDto la2 = details.learnedAssociations.get(1);
+    assertThat(la2.sv).isEqualTo("SV_42");
+    assertThat(la2.symbol).isEqualTo("a");
   }
 
   @Test
@@ -154,26 +156,26 @@ public class EGDotEdgeTest {
       .addConstraint(SV_42, ObjectConstraint.NOT_NULL));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2, null);
-    JsonObject details = new EGDotEdge(1, 2, edge).details();
+    EdgeDetailsDto details = new EGDotEdge(1, 2, edge).details();
 
-    JsonArray learnedConstraints = details.getJsonArray("learnedConstraints");
+    List<SvWithConstraintsDto> learnedConstraints = details.learnedConstraints;
     assertThat(learnedConstraints).isNotNull();
     assertThat(learnedConstraints).hasSize(1);
 
-    JsonObject lc = (JsonObject) learnedConstraints.get(0);
-    assertThat(lc.getString("sv")).isEqualTo("SV_42");
-    assertThat(lc.getString("constraint")).isEqualTo("NOT_NULL");
+    SvWithConstraintsDto lc = learnedConstraints.get(0);
+    assertThat(lc.sv).isEqualTo("SV_42");
+    assertThat(lc.constraints).containsOnly("NOT_NULL");
 
-    JsonArray learnedAssociations = details.getJsonArray("learnedAssociations");
+    List<SvWithSymbolDto> learnedAssociations = details.learnedAssociations;
     assertThat(learnedAssociations).isNotNull();
     assertThat(learnedAssociations).hasSize(1);
 
-    JsonObject la = (JsonObject) learnedAssociations.get(0);
-    assertThat(la.getString("sv")).isEqualTo("SV_42");
-    assertThat(la.getString("symbol")).isEqualTo("a");
+    SvWithSymbolDto la = learnedAssociations.get(0);
+    assertThat(la.sv).isEqualTo("SV_42");
+    assertThat(la.symbol).isEqualTo("a");
 
-    JsonArray selectedMethodYields = details.getJsonArray("selectedMethodYields");
-    assertThat(selectedMethodYields).isNull();
+    List<MethodYieldDto> selectedMethodYields = details.selectedMethodYields;
+    assertThat(selectedMethodYields).isEmpty();
   }
 
   private static ExplodedGraph.Edge addEdge(ExplodedGraph.Node parent, ExplodedGraph.Node child) {
