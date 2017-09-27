@@ -231,21 +231,25 @@ function getStack(items) {
 }
 
 function getEdgeDetails(details) {
-  if (!details || (!details.learnedConstraints && !details.learnedAssociations && !details.selectedMethodYields)) {
+  const hasLearnedConstraints = details && details.learnedConstraints && details.learnedConstraints.length > 0;
+  const hasLearnedAssociations = details && details.learnedAssociations && details.learnedAssociations.length > 0;
+  const hasYields = details && details.selectedMethodYields && details.selectedMethodYields.length > 0;
+
+  if (!details || (!hasLearnedConstraints && !hasLearnedAssociations && !hasYields)) {
     return '<em>No data...</em>';
   }
   let result = '';
-  if (details.learnedConstraints) {
+  if (hasLearnedConstraints) {
     result += getLearnedConstraints(details.learnedConstraints);
   }
-  if (details.learnedAssociations) {
-    if (details.learnedConstraints) {
+  if (hasLearnedAssociations) {
+    if (hasLearnedConstraints) {
       result += '<hr>';
     }
     result += getLearnedAssociations(details.learnedAssociations);
   }
-  if (details.selectedMethodYields) {
-    if (details.learnedAssociations || details.learnedConstraints) {
+  if (hasYields) {
+    if (hasLearnedAssociations || hasLearnedConstraints) {
       result += '<hr>';
     }
     result += '<h3>Selected method yields</h3>';
@@ -258,7 +262,7 @@ function getLearnedConstraints(lcs) {
   let result = '<h3>Learned constraints</h3>';
   result += '<table>';
   lcs.forEach(function (lc) {
-    result += tableLine(lc['sv'], lc['constraint']);
+    result += tableLine(lc['sv'], lc['constraints']);
   });
   result += '</table>';
   return result;

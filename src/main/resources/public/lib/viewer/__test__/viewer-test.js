@@ -98,8 +98,8 @@ describe('viewer', function() {
 
     it('should generate table with all learned constraints in correct order', function() {
       const input = [
-        { sv : 'SV_1', constraint: 'NULL' },
-        { constraint: 'NOT_NULL', sv : 'SV_2' }
+        { sv : 'SV_1', constraints: ['NULL'] },
+        { constraints: ['NOT_NULL'], sv : 'SV_2' }
       ];
 
       const output = viewer.getLearnedConstraints(input);
@@ -178,17 +178,27 @@ describe('viewer', function() {
     });
 
     it ('should generates table with learned constraints when provided', function() {
-      const input = { learnedConstraints: [] };
+      const input = { 
+        learnedConstraints: [{
+          sv: 'SV_0',
+          constraints: ['NOT_NULL']
+        }]
+      };
       const output = viewer.getEdgeDetails(input);
 
-      expect(output).toBe('<h3>Learned constraints</h3><table></table>');
+      expect(output).toBe('<h3>Learned constraints</h3><table><tr><td>SV_0</td><td>NOT_NULL</td></tr></table>');
     });
 
     it ('should generates table with learned associations when provided', function() {
-      const input = { learnedAssociations: [] };
+      const input = { 
+        learnedAssociations: [{
+          sv: 'SV_0',
+          symbol: 'foo#a'
+        }]
+      };
       const output = viewer.getEdgeDetails(input);
 
-      expect(output).toBe('<h3>Learned associations</h3><table></table>');
+      expect(output).toBe('<h3>Learned associations</h3><table><tr><td>foo#a</td><td>SV_0</td></tr></table>');
     });
 
     it ('should generates table with yields when provided', function() {
@@ -208,8 +218,14 @@ describe('viewer', function() {
 
     it ('should add separators when 2 options are provided (associations + constraints)', function() {
       const input = {
-        learnedAssociations: [],
-        learnedConstraints: []
+        learnedAssociations: [{
+          sv: 'SV_0',
+          symbol: 'foo#a'
+        }],
+        learnedConstraints: [{
+          sv: 'SV_0',
+          constraints: ['NOT_NULL']
+        }]
       };
       const output = viewer.getEdgeDetails(input);
 
@@ -218,8 +234,15 @@ describe('viewer', function() {
 
     it ('should add separators when 2 options are provided (associations + yields)', function() {
       const input = {
-        selectedMethodYields: [],
-        learnedAssociations: []
+        selectedMethodYields: [{
+          params: [['NOT_NULL', 'TRUE'], ['no constraint']],
+          result: ['NULL'],
+          resultIndex: -1
+        }],
+        learnedAssociations: [{
+          sv: 'SV_0',
+          symbol: 'foo#a'
+        }]
       };
       const output = viewer.getEdgeDetails(input);
 
@@ -228,8 +251,15 @@ describe('viewer', function() {
 
     it ('should add separators when 2 options are provided (constraints + yields)', function() {
       const input = {
-        selectedMethodYields: [],
-        learnedConstraints: []
+        selectedMethodYields: [{
+          params: [['NOT_NULL', 'TRUE'], ['no constraint']],
+          result: ['NULL'],
+          resultIndex: -1
+        }],
+        learnedConstraints: [{
+          sv: 'SV_0',
+          constraints: ['NOT_NULL']
+        }]
       };
       const output = viewer.getEdgeDetails(input);
 
@@ -298,7 +328,7 @@ describe('viewer', function() {
         psStack: [
           {sv: 'SV_42', symbol: 'a' },
           // symbol is not required
-          {sv: 'SV_21' }
+          {sv: 'SV_21', symbol: null }
         ]
       };
       const output = viewer.getNodeDetails(input);
