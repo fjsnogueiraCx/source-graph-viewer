@@ -196,12 +196,11 @@ public class EGDotNode extends DotGraph.Node {
     if (methodYield instanceof HappyPathYield) {
       HappyPathYield hpy = (HappyPathYield) methodYield;
       return new HappyPathMethodYieldDto(params, constraints(hpy.resultConstraint()), hpy.resultIndex());
-    } else if (methodYield instanceof ExceptionalYield) {
-      Type exceptionType = ((ExceptionalYield) methodYield).exceptionType();
-      String exceptionFQN = exceptionType == null ? "runtime Exception" : exceptionType.fullyQualifiedName();
-      return new ExceptionPathMethodYieldDto(params, exceptionFQN);
     }
-    return new MethodYieldDto(params);
+    // Not an happy path yield, so it's an exceptional yield
+    Type exceptionType = ((ExceptionalYield) methodYield).exceptionType();
+    String exceptionFQN = exceptionType == null ? "runtime Exception" : exceptionType.fullyQualifiedName();
+    return new ExceptionPathMethodYieldDto(params, exceptionFQN);
   }
 
   @SuppressWarnings("unchecked")
