@@ -75,17 +75,20 @@ public class ASTDotGraph extends DotGraph {
 
     private final String label;
     private final Highlighting highlighting;
+    private final ASTNodeDetailsDto details;
 
     public ASTDotNode(int id, String label) {
       super(id);
       this.label = label;
       this.highlighting = Highlighting.TOKEN_KIND;
+      this.details = new ASTNodeDetailsDto(Tree.Kind.TOKEN);
     }
 
     public ASTDotNode(int id, String label, Tree.Kind kind) {
       super(id);
       this.label = label;
       this.highlighting = fromTreeKind(kind);
+      this.details = new ASTNodeDetailsDto(kind);
     }
 
     @CheckForNull
@@ -119,10 +122,18 @@ public class ASTDotGraph extends DotGraph {
     }
 
     @Override
-    public CommonDto details() {
-      return null;
+    public ASTNodeDetailsDto details() {
+      return details;
     }
 
+  }
+
+  private static class ASTNodeDetailsDto implements CommonDto {
+    final String kind;
+
+    public ASTNodeDetailsDto(Tree.Kind kind) {
+      this.kind = kind.name();
+    }
   }
 
   private static class ASTDotEdge extends DotGraph.Edge {
