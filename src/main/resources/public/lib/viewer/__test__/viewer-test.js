@@ -661,6 +661,16 @@ describe('viewer', function() {
         }
       };
       const mockNetwork = {
+        viewer: {
+          data : {
+            nodes: new vis.DataSet([
+              {id: 'a', details: {ppKey: 'B2.0'}},
+              {id: 'b', details: {ppKey: 'B1.0'}},
+              {id: 'c', details: {ppKey: 'B1.0'}},
+              {id: 'd', details: {ppKey: 'B0.0'}}
+            ])
+          }
+        },
         eg: {
           cfgEditorSelectedLine: -1,
           cfgEditor: mockEditor,
@@ -669,12 +679,6 @@ describe('viewer', function() {
             'B1.0' : ['b','c'],
             'B0.0' : ['d']
           },
-          nodes: new vis.DataSet([
-            {id: 'a', details: {ppKey: 'B2.0'}},
-            {id: 'b', details: {ppKey: 'B1.0'}},
-            {id: 'c', details: {ppKey: 'B1.0'}},
-            {id: 'd', details: {ppKey: 'B0.0'}}
-          ]),
           ppMapCFG: {
             'B2.0' : -1,
             'B1.0' : 42,
@@ -691,8 +695,8 @@ describe('viewer', function() {
       expect(editorNewLine).toEqual(42);
 
       // nodes should have been highlighted
-      expect(mockNetwork.eg.nodes.get('b')['color']['background']).toEqual('pink');
-      expect(mockNetwork.eg.nodes.get('c')['color']['background']).toEqual('pink');
+      expect(mockNetwork.viewer.data.nodes.get('b')['color']['background']).toEqual('pink');
+      expect(mockNetwork.viewer.data.nodes.get('c')['color']['background']).toEqual('pink');
     });
 
     it('should highlight nothing if line from CFG editor does not match any PP', function() {
@@ -705,6 +709,16 @@ describe('viewer', function() {
         }
       };
       const mockNetwork = {
+        viewer: {
+          data: {
+            nodes: new vis.DataSet([
+              {id: 'a', details: {ppKey: 'B2.0'}},
+              {id: 'b', details: {ppKey: 'B1.0'}},
+              {id: 'c', details: {ppKey: 'B1.0'}},
+              {id: 'd', details: {ppKey: 'B0.0'}}
+            ])
+          }
+        },
         eg: {
           cfgEditorSelectedLine: -1,
           cfgEditor: mockEditor,
@@ -713,12 +727,6 @@ describe('viewer', function() {
             'B1.0' : ['b','c'],
             'B0.0' : ['d']
           },
-          nodes: new vis.DataSet([
-            {id: 'a', details: {ppKey: 'B2.0'}},
-            {id: 'b', details: {ppKey: 'B1.0'}},
-            {id: 'c', details: {ppKey: 'B1.0'}},
-            {id: 'd', details: {ppKey: 'B0.0'}}
-          ]),
           ppMapCFG: {
             'B2.0' : -1,
             'B1.0' : -1,
@@ -737,10 +745,38 @@ describe('viewer', function() {
       expect(editorNewLine).toEqual(-1);
 
       // nodes should have been highlighted
-      expect(mockNetwork.eg.nodes.get('a')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
-      expect(mockNetwork.eg.nodes.get('b')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
-      expect(mockNetwork.eg.nodes.get('c')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
-      expect(mockNetwork.eg.nodes.get('d')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
+      expect(mockNetwork.viewer.data.nodes.get('a')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
+      expect(mockNetwork.viewer.data.nodes.get('b')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
+      expect(mockNetwork.viewer.data.nodes.get('c')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
+      expect(mockNetwork.viewer.data.nodes.get('d')['color']['background']).toEqual(NODE_DEFAULT_COLOR);
+    });
+  });
+
+  describe('nodesByKind', function() {
+    it('should return an empty map when there is not nodes', function() {
+      const input = new vis.DataSet();
+      const output = viewer.nodesByKind(input);
+
+      expect(output).toEqual({});
+    });
+
+    it('should return a map nodes key sorted by kind', function() {
+      const input = new vis.DataSet([
+        {id: 'a'},
+        {id: 'b', details: {}},
+        {id: 'c', details: { kind : 'KIND_1' }},
+        {id: 'd', details: { kind : 'KIND_2' }},
+        {id: 'e', details: { kind : 'KIND_1' }},
+        {id: 'f', details: { kind : 'KIND_3' }},
+        {id: 'g', details: { other : 'stuff' }}
+      ]);
+      const output = viewer.nodesByKind(input);
+
+      expect(output).toEqual({
+        KIND_1 : [ 'c', 'e'],
+        KIND_2 : ['d'],
+        KIND_3 : ['f']
+      });
     });
   });
 

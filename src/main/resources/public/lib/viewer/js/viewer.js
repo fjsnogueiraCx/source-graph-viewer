@@ -15,17 +15,18 @@ function loadDot(DOTstring, targetContainer, hierarchical, detailsPanels) {
   let network = new vis.Network(targetContainer, data);
   changeLayout(network, hierarchical);
 
+  // enrich network with the data as initially extracted
+  network['viewer'] = { 'data' : data };
+
   if (detailsPanels) {
     // by default only show info panel
     detailsPanels['info'].show();
     detailsPanels['node'].hide();
     detailsPanels['edge'].hide();
 
-    const ppMap = getPPMap(data.nodes);
-    // enrich network with mapping between PP and nodes
+    // enrich network with mapping between PP
     network['eg'] = {
-      'ppMap' : ppMap,
-      'nodes' : data.nodes
+      'ppMap' : getPPMap(data.nodes)
     };
 
     network.on('click', function(params) {
@@ -465,7 +466,7 @@ function handleNewPP(editor, network) {
   if (ppKey) {
     nodeIdsWithSamePP = network['eg']['ppMap'][ppKey];
   }
-  highlightAllNodesAtSamePP(ppKey, nodeIdsWithSamePP, network['eg']['nodes'], network);
+  highlightAllNodesAtSamePP(ppKey, nodeIdsWithSamePP, network['viewer']['data']['nodes'], network);
 }
 
 function changeLayout(network, hierarchical) {
@@ -479,6 +480,24 @@ function changeLayout(network, hierarchical) {
       };
   }
   network.setOptions(options);
+}
+
+function nodesByKind(nodes) {
+  let map = { };
+  nodes.forEach(function (node) {
+    if (!node.details) {
+      return;
+    }
+    const kind = node.details.kind;
+    if (!kind) {
+      return;
+    }
+    if (!map[kind]) {
+      map[kind] = [];
+    }
+    map[kind].push(node.id);
+  });
+  return map;
 }
 
 // Exposes method to be tested
@@ -500,7 +519,8 @@ try {
     mapPPByLine,
     getPPMap,
     highlightAllNodesAtSamePP,
-    handleNewPP
+    handleNewPP,
+    nodesByKind
   };
 } catch(moduleNotDefined) {
   // NOP

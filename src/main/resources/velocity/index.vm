@@ -109,6 +109,7 @@
                        <div class="btn-group btn-group-justified" data-toggle="buttons">
                          <label class="btn btn-primary active"><input type="radio" id="ast-hierarchicalON" name="ast-hierarchical" autocomplete="off" checked>ON</label>
                          <label class="btn btn-default"><input type="radio" id="ast-hierarchicalOFF" name="ast-hierarchical" autocomplete="off">OFF</label>
+                         <hr>
                        </div>
                      </div>
                    </div>
@@ -167,6 +168,7 @@
       var astContainer = document.getElementById('ast-container');
       var dotAST = '$dotAST';
       var networkAST = loadDot(dotAST, astContainer, true);
+      var nodesGroupedByKind = nodesByKind(networkAST.viewer.data.nodes);
 
       var errorBox = document.getElementById('errorBox');
       errorBox.parentNode.removeChild(errorBox);
