@@ -20,7 +20,14 @@
 package org.sonar.java.se;
 
 import com.google.common.collect.Lists;
-
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
+import org.sonar.java.bytecode.loader.SquidClassLoader;
+import org.sonar.java.resolve.JavaSymbol;
 import org.sonar.java.resolve.SemanticModel;
 import org.sonar.java.se.xproc.BehaviorCache;
 import org.sonar.java.se.xproc.MethodBehavior;
@@ -29,12 +36,6 @@ import org.sonar.java.viewer.Viewer;
 import org.sonar.plugins.java.api.JavaFileScannerContext;
 import org.sonar.plugins.java.api.tree.CompilationUnitTree;
 import org.sonar.plugins.java.api.tree.MethodTree;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Stream;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,17 +49,19 @@ public class EGDotGraph extends DotGraph {
   private final CompilationUnitTree cut;
   private final MethodTree methodToAnalyze;
   private final SemanticModel semanticModel;
+  private final SquidClassLoader classLoader;
   private final int cfgFirstBlockId;
 
   public EGDotGraph(Viewer.Base base) {
-    this(base.cut, base.firstMethodOrConstructor, base.semanticModel, base.cfgFirstMethodOrConstructor.blocks().get(0).id());
+    this(base.cut, base.firstMethodOrConstructor, base.semanticModel, base.classLoader, base.cfgFirstMethodOrConstructor.blocks().get(0).id());
   }
 
-  private EGDotGraph(CompilationUnitTree cut, MethodTree method, SemanticModel semanticModel, int cfgFirstBlockId) {
+  private EGDotGraph(CompilationUnitTree cut, MethodTree method, SemanticModel semanticModel, SquidClassLoader classLoader, int cfgFirstBlockId) {
     this.cut = cut;
     this.methodToAnalyze = method;
     this.semanticModel = semanticModel;
     this.cfgFirstBlockId = cfgFirstBlockId;
+    this.classLoader = classLoader;
     computeEG();
   }
 
@@ -66,19 +69,33 @@ public class EGDotGraph extends DotGraph {
     JavaFileScannerContext mockContext = mock(JavaFileScannerContext.class);
     when(mockContext.getTree()).thenReturn(cut);
     when(mockContext.getSemanticModel()).thenReturn(semanticModel);
-    SymbolicExecutionVisitor sev = new SymbolicExecutionVisitor(Lists.newArrayList()) {
+    // explicitly enable X-File analysis
+    this.behaviorCache = new BehaviorCache(classLoader, true);
+    SymbolicExecutionVisitor sev = new SymbolicExecutionVisitor(Lists.newArrayList(), behaviorCache) {
       @Override
       public void execute(MethodTree methodTree) {
         this.context = mockContext;
         super.execute(methodTree);
       }
     };
+    sev.behaviorCache.setFileContext(sev, semanticModel);
     ExplodedGraphWalker.ExplodedGraphWalkerFactory egwFactory = new ExplodedGraphWalker.ExplodedGraphWalkerFactory(Collections.emptyList());
     ExplodedGraphWalker walker = egwFactory.createWalker(sev.behaviorCache, semanticModel);
-    walker.visitMethod(methodToAnalyze, new MethodBehavior(methodToAnalyze.symbol()));
+    walker.visitMethod(methodToAnalyze, new MethodBehavior(((JavaSymbol.MethodJavaSymbol) methodToAnalyze.symbol()).completeSignature()));
 
-    this.explodedGraph = walker.getExplodedGraph();
-    this.behaviorCache = sev.behaviorCache;
+    this.explodedGraph = getExplodedGraph(walker);
+  }
+
+  private static ExplodedGraph getExplodedGraph(ExplodedGraphWalker walker) {
+    try {
+      // ugly hack to get the exploded graph field
+      Field explodedGraphField = walker.getClass().getDeclaredField("explodedGraph");
+      explodedGraphField.setAccessible(true);
+      return (ExplodedGraph) explodedGraphField.get(walker);
+    } catch (Exception e) {
+      // do nothing
+    }
+    return null;
   }
 
   @Override
@@ -92,13 +109,13 @@ public class EGDotGraph extends DotGraph {
     int index = 0;
     for (ExplodedGraph.Node node : egNodes) {
       Collection<ExplodedGraph.Edge> egEdges = node.edges();
-      addNode(new EGDotNode(index, node, behaviorCache, !egEdges.isEmpty(), cfgFirstBlockId));
+      addNode(new EGDotNode(index, node, behaviorCache, semanticModel, !egEdges.isEmpty(), cfgFirstBlockId));
       Stream<ExplodedGraph.Edge> edgeStream = egEdges.stream();
       if (!SHOW_MULTIPLE_PARENTS) {
         edgeStream = edgeStream.limit(1);
       }
       int finalIndex = index;
-      edgeStream.map(e -> new EGDotEdge(egNodes.indexOf(e.parent()), finalIndex, e)).forEach(this::addEdge);
+      edgeStream.map(e -> new EGDotEdge(egNodes.indexOf(e.parent()), finalIndex, e, semanticModel)).forEach(this::addEdge);
       index++;
     }
   }

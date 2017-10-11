@@ -160,7 +160,6 @@ public class ViewerTest {
 
   }
 
-
   @Test
   public void test_complex_code_generation() throws Exception {
     String source = "class A {"
@@ -190,7 +189,7 @@ public class ViewerTest {
     // FIXME: dot graph of EG is not consistent between calls
     assertThat(dotEG).isNotEmpty();
     // check for correctly built yields
-    assertThat(dotEG).contains("?methodName?:?bar?");
+    assertThat(dotEG).contains("?methodName?:?A#bar()Z?");
     assertThat(dotEG).contains("?methodYields?:[{?result?:[?NOT_NULL?,?TRUE?],?resultIndex?:-1,?params?:[]}]");
 
     assertThat(values.get("errorMessage")).isEmpty();

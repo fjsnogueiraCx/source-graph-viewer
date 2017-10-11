@@ -109,7 +109,8 @@ function getNodeDetails(details) {
 
   if (details.methodYields) {
     result += '<hr>';
-    result += `<h3>Method Yields: ${details.methodName}(...)</h3>`;
+    result += `<h3>Method Yields:</h3>`;
+    result += `<pre>${details.methodName}</pre>`;
     result += getMethodYields(details.methodYields);
   }
 

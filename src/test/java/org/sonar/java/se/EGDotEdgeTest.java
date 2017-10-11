@@ -19,10 +19,13 @@
  */
 package org.sonar.java.se;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sonar.java.cfg.CFG;
+import org.sonar.java.resolve.SemanticModel;
 import org.sonar.java.se.constraint.BooleanConstraint;
 import org.sonar.java.se.constraint.ObjectConstraint;
 import org.sonar.java.se.dto.EdgeDetailsDto;
@@ -33,15 +36,12 @@ import org.sonar.java.se.symbolicvalues.SymbolicValue;
 import org.sonar.java.se.xproc.MethodYield;
 import org.sonar.plugins.java.api.semantic.Symbol;
 
-import javax.annotation.Nullable;
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EGDotEdgeTest {
 
   private ExplodedGraph eg;
+  private SemanticModel semanticModel;
   private static final Symbol A_SYMBOL = mockSymbol("a");
   private static final Symbol B_SYMBOL = mockSymbol("b");
   private static final SymbolicValue SV_42 = mockSymbolicValue(42);
@@ -50,6 +50,7 @@ public class EGDotEdgeTest {
   @Before
   public void setUp() {
     eg = new ExplodedGraph();
+    semanticModel = Mockito.mock(SemanticModel.class);
   }
 
   @Test
@@ -58,7 +59,7 @@ public class EGDotEdgeTest {
     ExplodedGraph.Node n2 = node(2, ProgramState.EMPTY_STATE);
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    EGDotEdge egEdgeDataProvider = new EGDotEdge(1, 2, edge);
+    EGDotEdge egEdgeDataProvider = new EGDotEdge(1, 2, edge, semanticModel);
 
     assertThat(egEdgeDataProvider.label()).isEmpty();
   }
@@ -69,7 +70,7 @@ public class EGDotEdgeTest {
     ExplodedGraph.Node n2 = node(2, ProgramState.EMPTY_STATE.put(A_SYMBOL, SV_42));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    String label = new EGDotEdge(1, 2, edge).label();
+    String label = new EGDotEdge(1, 2, edge, semanticModel).label();
     assertThat(label).contains("SV_42");
     assertThat(label).contains("a");
   }
@@ -80,7 +81,7 @@ public class EGDotEdgeTest {
     ExplodedGraph.Node n2 = node(2, ProgramState.EMPTY_STATE.addConstraint(SV_42, ObjectConstraint.NOT_NULL));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    String label = new EGDotEdge(1, 2, edge).label();
+    String label = new EGDotEdge(1, 2, edge, semanticModel).label();
     assertThat(label).contains("SV_42");
     assertThat(label).contains("NOT_NULL");
   }
@@ -93,7 +94,7 @@ public class EGDotEdgeTest {
       .addConstraint(SV_42, ObjectConstraint.NOT_NULL));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    String label = new EGDotEdge(1, 2, edge).label();
+    String label = new EGDotEdge(1, 2, edge, semanticModel).label();
     String[] split = label.split(",\\\\n");
 
     assertThat(split).hasSize(2);
@@ -112,7 +113,7 @@ public class EGDotEdgeTest {
       .addConstraint(SV_42, BooleanConstraint.FALSE));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    EdgeDetailsDto details = new EGDotEdge(1, 2, edge).details();
+    EdgeDetailsDto details = new EGDotEdge(1, 2, edge, semanticModel).details();
 
     assertThat(details.learnedConstraints).isNotNull();
     assertThat(details.learnedConstraints).hasSize(2);
@@ -134,7 +135,7 @@ public class EGDotEdgeTest {
       .put(B_SYMBOL, SV_21));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2);
-    EdgeDetailsDto details = new EGDotEdge(1, 2, edge).details();
+    EdgeDetailsDto details = new EGDotEdge(1, 2, edge, semanticModel).details();
 
     assertThat(details.learnedAssociations).isNotNull();
     assertThat(details.learnedAssociations).hasSize(2);
@@ -156,7 +157,7 @@ public class EGDotEdgeTest {
       .addConstraint(SV_42, ObjectConstraint.NOT_NULL));
 
     ExplodedGraph.Edge edge = addEdge(n1, n2, null);
-    EdgeDetailsDto details = new EGDotEdge(1, 2, edge).details();
+    EdgeDetailsDto details = new EGDotEdge(1, 2, edge, semanticModel).details();
 
     List<SvWithConstraintsDto> learnedConstraints = details.learnedConstraints;
     assertThat(learnedConstraints).isNotNull();

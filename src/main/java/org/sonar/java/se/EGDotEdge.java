@@ -19,6 +19,12 @@
  */
 package org.sonar.java.se;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
+import org.sonar.java.resolve.SemanticModel;
 import org.sonar.java.se.dto.EdgeDetailsDto;
 import org.sonar.java.se.dto.MethodYieldDto;
 import org.sonar.java.se.dto.SvWithConstraintsDto;
@@ -26,21 +32,16 @@ import org.sonar.java.se.dto.SvWithSymbolDto;
 import org.sonar.java.se.symbolicvalues.SymbolicValue;
 import org.sonar.java.viewer.DotGraph;
 
-import javax.annotation.CheckForNull;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 public class EGDotEdge extends DotGraph.Edge {
 
+  private final SemanticModel semanticModel;
   private final ExplodedGraph.Edge edge;
   private final EdgeDetailsDto details;
 
-  public EGDotEdge(int from, int to, ExplodedGraph.Edge edge) {
+  public EGDotEdge(int from, int to, ExplodedGraph.Edge edge, SemanticModel semanticModel) {
     super(from, to);
     this.edge = edge;
+    this.semanticModel = semanticModel;
     this.details = buildDetails();
   }
 
@@ -90,7 +91,7 @@ public class EGDotEdge extends DotGraph.Edge {
   }
 
   private List<MethodYieldDto> yields() {
-    return edge.yields().stream().map(EGDotNode::yield).collect(Collectors.toList());
+    return edge.yields().stream().map(y -> EGDotNode.yield(y, semanticModel)).collect(Collectors.toList());
   }
 
 }

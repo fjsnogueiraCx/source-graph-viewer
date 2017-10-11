@@ -19,8 +19,16 @@
  */
 package org.sonar.java.se;
 
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import org.sonar.java.cfg.CFG;
 import org.sonar.java.collections.PStack;
+import org.sonar.java.resolve.SemanticModel;
 import org.sonar.java.se.ProgramState.SymbolicValueSymbol;
 import org.sonar.java.se.constraint.Constraint;
 import org.sonar.java.se.constraint.ConstraintsByDomain;
@@ -42,34 +50,26 @@ import org.sonar.plugins.java.api.semantic.Type;
 import org.sonar.plugins.java.api.tree.MethodInvocationTree;
 import org.sonar.plugins.java.api.tree.Tree;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
-import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 public class EGDotNode extends DotGraph.Node {
 
   private final ProgramState ps;
   private final ProgramPoint pp;
   @Nullable
   private final MethodBehavior methodBehavior;
+  private final SemanticModel semanticModel;
   private final boolean hasParents;
   private final boolean isFirstBlock;
 
   private final NodeDetailsDto details;
 
-  public EGDotNode(int id, ExplodedGraph.Node node, BehaviorCache behaviorCache, boolean hasParents, int firstBlockId) {
+  public EGDotNode(int id, ExplodedGraph.Node node, BehaviorCache behaviorCache, SemanticModel semanticModel, boolean hasParents, int firstBlockId) {
     super(id);
     this.ps = node.programState;
     this.pp = node.programPoint;
     this.hasParents = hasParents;
+    this.semanticModel = semanticModel;
     this.isFirstBlock = isFirstBlock(node, firstBlockId);
     this.methodBehavior = getMethodBehavior(behaviorCache, pp.syntaxTree());
-
     this.details = buildDetails();
   }
 
@@ -172,7 +172,7 @@ public class EGDotNode extends DotGraph.Node {
   }
 
   private List<MethodYieldDto> yields() {
-    return methodBehavior.yields().stream().map(EGDotNode::yield).collect(Collectors.toList());
+    return methodBehavior.yields().stream().map(y -> yield(y, semanticModel)).collect(Collectors.toList());
   }
 
   private boolean hasMethodBehavior() {
@@ -191,14 +191,14 @@ public class EGDotNode extends DotGraph.Node {
     return bc.get((Symbol.MethodSymbol) symbol);
   }
 
-  public static MethodYieldDto yield(MethodYield methodYield) {
+  public static MethodYieldDto yield(MethodYield methodYield, SemanticModel semanticModel) {
     List<List<String>> params = constraints(getParametersConstraints(methodYield));
     if (methodYield instanceof HappyPathYield) {
       HappyPathYield hpy = (HappyPathYield) methodYield;
       return new HappyPathMethodYieldDto(params, constraints(hpy.resultConstraint()), hpy.resultIndex());
     }
     // Not an happy path yield, so it's an exceptional yield
-    Type exceptionType = ((ExceptionalYield) methodYield).exceptionType();
+    Type exceptionType = ((ExceptionalYield) methodYield).exceptionType(semanticModel);
     String exceptionFQN = exceptionType == null ? "runtime Exception" : exceptionType.fullyQualifiedName();
     return new ExceptionPathMethodYieldDto(params, exceptionFQN);
   }
@@ -216,7 +216,7 @@ public class EGDotNode extends DotGraph.Node {
   }
 
   private String methodName() {
-    return methodBehavior.methodSymbol().name();
+    return methodBehavior.signature();
   }
 
 }

@@ -22,26 +22,6 @@ package org.sonar.java.viewer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.sonar.sslr.api.typed.ActionParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.sonar.java.ast.ASTDotGraph;
-import org.sonar.java.ast.parser.JavaParser;
-import org.sonar.java.bytecode.loader.SquidClassLoader;
-import org.sonar.java.cfg.CFG;
-import org.sonar.java.cfg.CFGDotGraph;
-import org.sonar.java.cfg.CFGPrinter;
-import org.sonar.java.resolve.SemanticModel;
-import org.sonar.java.se.EGDotGraph;
-import org.sonar.plugins.java.api.tree.ClassTree;
-import org.sonar.plugins.java.api.tree.CompilationUnitTree;
-import org.sonar.plugins.java.api.tree.MethodTree;
-import org.sonar.plugins.java.api.tree.Tree;
-import spark.ModelAndView;
-import spark.Request;
-import spark.template.velocity.VelocityTemplateEngine;
-
-import javax.annotation.CheckForNull;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -59,6 +39,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.CheckForNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.sonar.java.ast.ASTDotGraph;
+import org.sonar.java.ast.parser.JavaParser;
+import org.sonar.java.bytecode.loader.SquidClassLoader;
+import org.sonar.java.cfg.CFG;
+import org.sonar.java.cfg.CFGDotGraph;
+import org.sonar.java.cfg.CFGPrinter;
+import org.sonar.java.resolve.SemanticModel;
+import org.sonar.java.se.EGDotGraph;
+import org.sonar.plugins.java.api.tree.ClassTree;
+import org.sonar.plugins.java.api.tree.CompilationUnitTree;
+import org.sonar.plugins.java.api.tree.MethodTree;
+import org.sonar.plugins.java.api.tree.Tree;
+import spark.ModelAndView;
+import spark.Request;
+import spark.template.velocity.VelocityTemplateEngine;
 
 import static spark.Spark.awaitInitialization;
 import static spark.Spark.exception;
@@ -171,12 +169,13 @@ public class Viewer {
     public final MethodTree firstMethodOrConstructor;
     public final SemanticModel semanticModel;
     public final CFG cfgFirstMethodOrConstructor;
+    public final SquidClassLoader classLoader;
 
     public Base(String source) {
       this.cut = (CompilationUnitTree) PARSER.parse(source);
-
       List<File> classpath = getFilesRecursively(new String[] {"jar", "zip"});
-      this.semanticModel = SemanticModel.createFor(cut, new SquidClassLoader(classpath));
+      this.classLoader = new SquidClassLoader(classpath);
+      this.semanticModel = SemanticModel.createFor(cut, classLoader);
       this.firstMethodOrConstructor = getFirstMethodOrConstructor(cut);
 
       Preconditions.checkNotNull(firstMethodOrConstructor, "Unable to find a method/constructor in first class.");

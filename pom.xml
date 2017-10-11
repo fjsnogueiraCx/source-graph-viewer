@@ -50,7 +50,7 @@
 
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
 
-    <sonarjava.version>4.14.0.11784</sonarjava.version>
+    <sonarjava.version>4.16.0-SNAPSHOT</sonarjava.version>
     <jacoco.version>0.7.9</jacoco.version>
 
     <sonar.sources>src/main/java,src/main/resources/public/lib/viewer/js,src/main/resources/public/lib/viewer/css,src/main/resources/velocity</sonar.sources>

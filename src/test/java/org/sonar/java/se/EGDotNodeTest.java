@@ -19,12 +19,18 @@
  */
 package org.sonar.java.se;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sonar.java.cfg.CFG;
+import org.sonar.java.resolve.JavaSymbol;
+import org.sonar.java.resolve.SemanticModel;
 import org.sonar.java.se.constraint.BooleanConstraint;
 import org.sonar.java.se.constraint.ConstraintsByDomain;
 import org.sonar.java.se.constraint.ObjectConstraint;
@@ -37,12 +43,10 @@ import org.sonar.java.se.symbolicvalues.SymbolicValue;
 import org.sonar.java.se.xproc.BehaviorCache;
 import org.sonar.java.se.xproc.HappyPathYield;
 import org.sonar.java.se.xproc.MethodBehavior;
+import org.sonar.java.se.xproc.MethodYield;
 import org.sonar.java.viewer.DotGraph;
 import org.sonar.java.viewer.Viewer;
 import org.sonar.plugins.java.api.semantic.Symbol;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,6 +57,7 @@ public class EGDotNodeTest {
 
   private BehaviorCache mockBehaviorCache;
   private ExplodedGraph eg;
+  private SemanticModel semanticModel;
 
   private static Symbol mockSymbol(String symbolName) {
     Symbol mock = Mockito.mock(Symbol.class);
@@ -70,6 +75,7 @@ public class EGDotNodeTest {
   @Before
   public void setUp() {
     mockBehaviorCache = Mockito.mock(BehaviorCache.class);
+    semanticModel = Mockito.mock(SemanticModel.class);
     eg = new ExplodedGraph();
   }
 
@@ -85,7 +91,7 @@ public class EGDotNodeTest {
 
     // no parent, fake id of first block being 42, block id being 0
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 42);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 42);
 
     assertThat(egDotNode.highlighting()).isEqualTo(DotGraph.Highlighting.LOST_NODE);
   }
@@ -101,7 +107,7 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     NodeDetailsDto details = egDotNode.details();
 
     assertThat(details.ppKey).isEqualTo("B1.0");
@@ -118,14 +124,14 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     NodeDetailsDto details = egDotNode.details();
 
     assertThat(details.psValues).isEmpty();
 
     ProgramState newPs = node.programState.put(A_SYMBOL, SV_42);
     node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
-    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     details = egDotNode.details();
 
     assertThat(details.psValues).hasSize(1);
@@ -144,7 +150,7 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     NodeDetailsDto details = egDotNode.details();
 
     // contains starting SVs TRUE, FALSE, NULL
@@ -155,7 +161,7 @@ public class EGDotNodeTest {
 
     ProgramState newPs = node.programState.addConstraint(SV_42, ObjectConstraint.NOT_NULL);
     node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
-    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     details = egDotNode.details();
 
     assertThat(details.psConstraints).hasSize(4);
@@ -173,14 +179,14 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     NodeDetailsDto details = egDotNode.details();
 
     assertThat(details.psStack).isEmpty();
 
     ProgramState newPs = node.programState.stackValue(SV_42);
     node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
-    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     details = egDotNode.details();
 
     assertThat(details.psStack).hasSize(1);
@@ -189,7 +195,7 @@ public class EGDotNodeTest {
 
     newPs = node.programState.stackValue(SV_21, A_SYMBOL);
     node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
-    egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
     details = egDotNode.details();
 
     assertThat(details.psStack).hasSize(2);
@@ -210,7 +216,7 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
 
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
     assertThat(details).isNotInstanceOf(NodeDetailsWithYieldDto.class);
@@ -228,7 +234,7 @@ public class EGDotNodeTest {
 
     // node of method invocation
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 1);
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
     assertThat(details).isNotInstanceOf(NodeDetailsWithYieldDto.class);
@@ -248,17 +254,18 @@ public class EGDotNodeTest {
     Mockito.when(mockBehaviorCache.get(Mockito.any(Symbol.MethodSymbol.class))).thenAnswer(new Answer<MethodBehavior>() {
       @Override
       public MethodBehavior answer(InvocationOnMock invocation) throws Throwable {
-        Symbol.MethodSymbol methodSymbol = invocation.getArgument(0);
-        MethodBehavior mb = new MethodBehavior(methodSymbol);
+        JavaSymbol.MethodJavaSymbol methodSymbol = invocation.getArgument(0);
+        MethodBehavior mb = new MethodBehavior(methodSymbol.completeSignature());
         HappyPathYield hpy = new HappyPathYield(mb);
         hpy.setResult(-1, null);
-        mb.addYield(hpy);
+        yields(mb).add(hpy);
         return mb;
       }
+
     });
 
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 1);
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
     assertThat(details).isExactlyInstanceOf(NodeDetailsWithYieldDto.class);
@@ -266,7 +273,7 @@ public class EGDotNodeTest {
     NodeDetailsWithYieldDto detailsWithYield = (NodeDetailsWithYieldDto) details;
 
     assertThat(detailsWithYield.methodName).isNotNull();
-    assertThat(detailsWithYield.methodName).isEqualTo("doSomething");
+    assertThat(detailsWithYield.methodName).isEqualTo("A#doSomething()Ljava/lang/Boolean;");
 
     List<MethodYieldDto> yields = detailsWithYield.methodYields;
     assertThat(yields).isNotNull();
@@ -279,6 +286,17 @@ public class EGDotNodeTest {
     HappyPathMethodYieldDto hpy0 = (HappyPathMethodYieldDto) yield0;
     assertThat(hpy0.resultIndex).isEqualTo(-1);
     assertThat(hpy0.result).containsExactly("no constraint");
+  }
+
+  private static Set<MethodYield> yields(MethodBehavior mb) {
+    try {
+      Field yields = mb.getClass().getDeclaredField("yields");
+      yields.setAccessible(true);
+      return (Set<MethodYield>) yields.get(mb);
+    } catch (Exception e) {
+      // do nothing
+    }
+    return null;
   }
 
   @Test
@@ -295,17 +313,17 @@ public class EGDotNodeTest {
     Mockito.when(mockBehaviorCache.get(Mockito.any(Symbol.MethodSymbol.class))).thenAnswer(new Answer<MethodBehavior>() {
       @Override
       public MethodBehavior answer(InvocationOnMock invocation) throws Throwable {
-        Symbol.MethodSymbol methodSymbol = invocation.getArgument(0);
-        MethodBehavior mb = new MethodBehavior(methodSymbol);
+        JavaSymbol.MethodJavaSymbol methodSymbol = invocation.getArgument(0);
+        MethodBehavior mb = new MethodBehavior(methodSymbol.completeSignature());
         HappyPathYield hpy = new HappyPathYield(mb);
         hpy.setResult(2, ConstraintsByDomain.empty().put(ObjectConstraint.NOT_NULL).put(BooleanConstraint.FALSE));
-        mb.addYield(hpy);
+        yields(mb).add(hpy);
         return mb;
       }
     });
 
     ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 1);
-    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
+    EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, semanticModel, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
     assertThat(details).isExactlyInstanceOf(NodeDetailsWithYieldDto.class);
@@ -313,7 +331,7 @@ public class EGDotNodeTest {
     NodeDetailsWithYieldDto detailsWithYield = (NodeDetailsWithYieldDto) details;
 
     assertThat(detailsWithYield.methodName).isNotNull();
-    assertThat(detailsWithYield.methodName).isEqualTo("doSomething");
+    assertThat(detailsWithYield.methodName).isEqualTo("A#doSomething()Ljava/lang/Boolean;");
 
     List<MethodYieldDto> yields = detailsWithYield.methodYields;
     assertThat(yields).isNotNull();
