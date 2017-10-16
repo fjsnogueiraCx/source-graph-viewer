@@ -60,7 +60,7 @@ public class ViewerTest {
   @Test
   public void code_without_method_trigger_an_exception() {
     exception.expect(NullPointerException.class);
-    exception.expectMessage("Unable to find a method in first class.");
+    exception.expectMessage("Unable to find a method/constructor in first class.");
 
     new Viewer.Base("class A { }");
   }
@@ -136,7 +136,7 @@ public class ViewerTest {
       httpPost.setEntity(new UrlEncodedFormEntity(postParameters, "UTF-8"));
       resp = client.execute(httpPost);
       assertThat(resp.getStatusLine().getStatusCode()).isEqualTo(200);
-      assertThat(EntityUtils.toString(resp.getEntity())).contains("<p>java.lang.NullPointerException: Unable to find a method in first class.<br/>");
+      assertThat(EntityUtils.toString(resp.getEntity())).contains("<p>java.lang.NullPointerException: Unable to find a method/constructor in first class.<br/>");
     }
 
   }

@@ -48,7 +48,7 @@ public class CFGPrinterTest {
       + "}";
     Viewer.Base base = new Viewer.Base(code);
 
-    assertThat(CFGPrinter.toString(base.cfgFirstMethod)).isEqualTo(
+    assertThat(CFGPrinter.toString(base.cfgFirstMethodOrConstructor)).isEqualTo(
       "Starts at B3\n"
         + "\n"
         + "B3\n0:\tIDENTIFIER                          \ta\n"
@@ -86,7 +86,7 @@ public class CFGPrinterTest {
 
     Viewer.Base base = new Viewer.Base(code);
 
-    assertThat(CFGPrinter.toString(base.cfgFirstMethod)).isEqualTo(
+    assertThat(CFGPrinter.toString(base.cfgFirstMethodOrConstructor)).isEqualTo(
       "Starts at B5\n"
         + "\nB5"
         + "\n0:\tINT_LITERAL                         \t42\n"
@@ -130,7 +130,7 @@ public class CFGPrinterTest {
 
     Viewer.Base base = new Viewer.Base(code);
 
-    assertThat(CFGPrinter.toString(base.cfgFirstMethod)).isEqualTo(
+    assertThat(CFGPrinter.toString(base.cfgFirstMethodOrConstructor)).isEqualTo(
       "Starts at B1\n"
         + "\n"
         + "B1\n"
@@ -157,7 +157,7 @@ public class CFGPrinterTest {
 
     Viewer.Base base = new Viewer.Base(code);
 
-    assertThat(CFGPrinter.toString(base.cfgFirstMethod)).isEqualTo(
+    assertThat(CFGPrinter.toString(base.cfgFirstMethodOrConstructor)).isEqualTo(
       "Starts at B1\n"
         + "\n"
         + "B1\n"

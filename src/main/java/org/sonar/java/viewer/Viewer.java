@@ -112,10 +112,10 @@ public class Viewer {
 
     Base base = new Base(javaCode);
 
-    values.put("cfg", CFGPrinter.toString(base.cfgFirstMethod));
+    values.put("cfg", CFGPrinter.toString(base.cfgFirstMethodOrConstructor));
 
     values.put("dotAST", new ASTDotGraph(base.cut).toDot());
-    values.put("dotCFG", new CFGDotGraph(base.cfgFirstMethod).toDot());
+    values.put("dotCFG", new CFGDotGraph(base.cfgFirstMethodOrConstructor).toDot());
     values.put("dotEG", new EGDotGraph(base).toDot());
 
     // explicitly force empty message and stack trace
@@ -161,25 +161,25 @@ public class Viewer {
   public static class Base {
     private static final ActionParser<Tree> PARSER = JavaParser.createParser();
     public final CompilationUnitTree cut;
-    public final MethodTree firstMethod;
+    public final MethodTree firstMethodOrConstructor;
     public final SemanticModel semanticModel;
-    public final CFG cfgFirstMethod;
+    public final CFG cfgFirstMethodOrConstructor;
 
     public Base(String source) {
       this.cut = (CompilationUnitTree) PARSER.parse(source);
       this.semanticModel = SemanticModel.createFor(cut, new SquidClassLoader(Collections.emptyList()));
-      this.firstMethod = getFirstMethod(cut);
+      this.firstMethodOrConstructor = getFirstMethodOrConstructor(cut);
 
-      Preconditions.checkNotNull(firstMethod, "Unable to find a method in first class.");
+      Preconditions.checkNotNull(firstMethodOrConstructor, "Unable to find a method/constructor in first class.");
 
-      this.cfgFirstMethod = CFG.build(firstMethod);
+      this.cfgFirstMethodOrConstructor = CFG.build(firstMethodOrConstructor);
     }
 
     @CheckForNull
-    private static MethodTree getFirstMethod(CompilationUnitTree cut) {
+    private static MethodTree getFirstMethodOrConstructor(CompilationUnitTree cut) {
       ClassTree classTree = (ClassTree) cut.types().get(0);
       return (MethodTree) classTree.members().stream()
-        .filter(m -> m.is(Tree.Kind.METHOD))
+        .filter(m -> m.is(Tree.Kind.METHOD, Tree.Kind.CONSTRUCTOR))
         .findFirst()
         .orElse(null);
     }

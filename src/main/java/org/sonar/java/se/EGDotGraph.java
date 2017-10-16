@@ -51,7 +51,7 @@ public class EGDotGraph extends DotGraph {
   private final int cfgFirstBlockId;
 
   public EGDotGraph(Viewer.Base base) {
-    this(base.cut, base.firstMethod, base.semanticModel, base.cfgFirstMethod.blocks().get(0).id());
+    this(base.cut, base.firstMethodOrConstructor, base.semanticModel, base.cfgFirstMethodOrConstructor.blocks().get(0).id());
   }
 
   private EGDotGraph(CompilationUnitTree cut, MethodTree method, SemanticModel semanticModel, int cfgFirstBlockId) {

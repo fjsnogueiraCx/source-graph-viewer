@@ -84,7 +84,7 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
 
     // no parent, fake id of first block being 42, block id being 0
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 42);
 
     assertThat(egDotNode.highlighting()).isEqualTo(DotGraph.Highlighting.LOST_NODE);
@@ -99,7 +99,7 @@ public class EGDotNodeTest {
       + "}";
 
     Viewer.Base base = new Viewer.Base(source);
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     NodeDetailsDto details = egDotNode.details();
@@ -116,7 +116,7 @@ public class EGDotNodeTest {
       + "}";
 
     Viewer.Base base = new Viewer.Base(source);
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     NodeDetailsDto details = egDotNode.details();
@@ -124,7 +124,7 @@ public class EGDotNodeTest {
     assertThat(details.psValues).isEmpty();
 
     ProgramState newPs = node.programState.put(A_SYMBOL, SV_42);
-    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
     egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     details = egDotNode.details();
 
@@ -142,7 +142,7 @@ public class EGDotNodeTest {
       + "}";
 
     Viewer.Base base = new Viewer.Base(source);
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     NodeDetailsDto details = egDotNode.details();
@@ -154,7 +154,7 @@ public class EGDotNodeTest {
     assertThat(details.psConstraints).contains(new SvWithConstraintsDto("SV_TRUE", Arrays.asList("NOT_NULL", "TRUE")));
 
     ProgramState newPs = node.programState.addConstraint(SV_42, ObjectConstraint.NOT_NULL);
-    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
     egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     details = egDotNode.details();
 
@@ -171,7 +171,7 @@ public class EGDotNodeTest {
       + "}";
 
     Viewer.Base base = new Viewer.Base(source);
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
 
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     NodeDetailsDto details = egDotNode.details();
@@ -179,7 +179,7 @@ public class EGDotNodeTest {
     assertThat(details.psStack).isEmpty();
 
     ProgramState newPs = node.programState.stackValue(SV_42);
-    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
     egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     details = egDotNode.details();
 
@@ -188,7 +188,7 @@ public class EGDotNodeTest {
     assertThat(details.psStack.get(0).symbol).isNull();
 
     newPs = node.programState.stackValue(SV_21, A_SYMBOL);
-    node = newNode(base.cfgFirstMethod.blocks().get(0), 0, newPs);
+    node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0, newPs);
     egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
     details = egDotNode.details();
 
@@ -209,7 +209,7 @@ public class EGDotNodeTest {
 
     Viewer.Base base = new Viewer.Base(source);
 
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 0);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 0);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
@@ -227,7 +227,7 @@ public class EGDotNodeTest {
     Viewer.Base base = new Viewer.Base(source);
 
     // node of method invocation
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 1);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
@@ -257,7 +257,7 @@ public class EGDotNodeTest {
       }
     });
 
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 1);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
     NodeDetailsDto details = egDotNode.details();
@@ -304,7 +304,7 @@ public class EGDotNodeTest {
       }
     });
 
-    ExplodedGraph.Node node = newNode(base.cfgFirstMethod.blocks().get(0), 1);
+    ExplodedGraph.Node node = newNode(base.cfgFirstMethodOrConstructor.blocks().get(0), 1);
     EGDotNode egDotNode = new EGDotNode(0, node, mockBehaviorCache, false, 1);
 
     NodeDetailsDto details = egDotNode.details();

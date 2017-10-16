@@ -37,7 +37,7 @@ public class CFGDotGraphTest {
       + "}";
     Viewer.Base base = new Viewer.Base(code);
 
-    CFGDotGraph cfgDotGraph = new CFGDotGraph(base.cfgFirstMethod);
+    CFGDotGraph cfgDotGraph = new CFGDotGraph(base.cfgFirstMethodOrConstructor);
     cfgDotGraph.build();
 
     assertThat(cfgDotGraph.toDot())
@@ -61,7 +61,7 @@ public class CFGDotGraphTest {
 
     Viewer.Base base = new Viewer.Base(code);
 
-    CFGDotGraph cfgDotGraph = new CFGDotGraph(base.cfgFirstMethod);
+    CFGDotGraph cfgDotGraph = new CFGDotGraph(base.cfgFirstMethodOrConstructor);
     cfgDotGraph.build();
 
     assertThat(cfgDotGraph.toDot())
