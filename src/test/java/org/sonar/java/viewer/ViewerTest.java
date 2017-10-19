@@ -31,6 +31,9 @@ import org.apache.http.util.EntityUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.sonar.plugins.java.api.semantic.Symbol;
+import org.sonar.plugins.java.api.tree.ExpressionStatementTree;
+import org.sonar.plugins.java.api.tree.MethodInvocationTree;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -63,6 +66,22 @@ public class ViewerTest {
     exception.expectMessage("Unable to find a method/constructor in first class.");
 
     new Viewer.Base("class A { }");
+  }
+
+  @Test
+  public void should_resolve_methods_from_external_dep() {
+    String source = "import com.google.common.base.Strings;\n"
+      + "\n"
+      + "class A {\n"
+      + "  void foo(String s) {\n"
+      + "    Strings.isNullOrEmpty(s);\n"
+      + "  }\n"
+      + "}";
+    Viewer.Base base = new Viewer.Base(source);
+    MethodInvocationTree methodInvocation = (MethodInvocationTree) ((ExpressionStatementTree) base.firstMethodOrConstructor.block().body().get(0)).expression();
+    Symbol symbol = methodInvocation.symbol();
+    assertThat(symbol.isUnknown()).isFalse();
+    assertThat(symbol.owner().type().is("com.google.common.base.Strings")).isTrue();
   }
 
   @Test

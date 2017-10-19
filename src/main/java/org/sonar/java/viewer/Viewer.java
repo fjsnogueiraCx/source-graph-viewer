@@ -41,16 +41,23 @@ import spark.Request;
 import spark.template.velocity.VelocityTemplateEngine;
 
 import javax.annotation.CheckForNull;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static spark.Spark.awaitInitialization;
@@ -167,12 +174,44 @@ public class Viewer {
 
     public Base(String source) {
       this.cut = (CompilationUnitTree) PARSER.parse(source);
-      this.semanticModel = SemanticModel.createFor(cut, new SquidClassLoader(Collections.emptyList()));
+
+      List<File> classpath = getFilesRecursively(new String[] {"jar", "zip"});
+      this.semanticModel = SemanticModel.createFor(cut, new SquidClassLoader(classpath));
       this.firstMethodOrConstructor = getFirstMethodOrConstructor(cut);
 
       Preconditions.checkNotNull(firstMethodOrConstructor, "Unable to find a method/constructor in first class.");
 
       this.cfgFirstMethodOrConstructor = CFG.build(firstMethodOrConstructor);
+    }
+
+    private static List<File> getFilesRecursively(final String[] extensions) {
+      List<File> files = new ArrayList<>();
+
+      FileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) throws IOException {
+          for (String extension : extensions) {
+            if (filePath.toString().endsWith("." + extension)) {
+              files.add(filePath.toFile());
+              break;
+            }
+          }
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+          return FileVisitResult.CONTINUE;
+        }
+      };
+
+      try {
+        Files.walkFileTree(Paths.get("target/test-jars"), visitor);
+      } catch (IOException e) {
+        // we already ignore errors in the visitor
+      }
+
+      return files;
     }
 
     @CheckForNull
