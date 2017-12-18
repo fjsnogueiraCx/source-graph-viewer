@@ -19,6 +19,13 @@
  */
 package org.sonar.java.viewer;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.lang.reflect.Constructor;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -34,18 +41,9 @@ import org.junit.rules.ExpectedException;
 import org.sonar.plugins.java.api.semantic.Symbol;
 import org.sonar.plugins.java.api.tree.ExpressionStatementTree;
 import org.sonar.plugins.java.api.tree.MethodInvocationTree;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.lang.reflect.Constructor;
-import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import spark.utils.IOUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import spark.utils.IOUtils;
 
 public class ViewerTest {
 
@@ -160,7 +158,6 @@ public class ViewerTest {
 
   }
 
-
   @Test
   public void test_complex_code_generation() throws Exception {
     String source = "class A {"
@@ -199,8 +196,8 @@ public class ViewerTest {
 
   @Test
   public void missing_default_code_should_still_return_something() {
-    String sourceCode = Viewer.fileContent("/public/example/");
-    assertThat(sourceCode).isEqualTo("// Unable to read file at location: \"/public/example/\"\\n\\n");
+    String sourceCode = Viewer.fileContent("/public/example/missing.java");
+    assertThat(sourceCode).isEqualTo("// Unable to read file at location:\n// \"/public/example/missing.java\"\n");
   }
 
 }

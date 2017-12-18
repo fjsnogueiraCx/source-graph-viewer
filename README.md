@@ -13,12 +13,18 @@ When analyzing sources, the viewer produces:
 Usage
 --------
 
-To start the viewer (web app), you have two options:
+To start the viewer (web app), you have three options:
 
 * execute `main` method from `org.sonar.java.viewer.Viewer` class;
-* build and run the web app using command line `mvn exec:java`.
+* build and run the web app using command line `mvn exec:java`;
+* build the application and start it from the jar with `mvn clean install`, and then `java -jar target/source-graph-viewer-X.X.X-SNAPSHOT-jar-with-dependencies`;
 
 Then, open your web browser and navigate to `http://localhost:9999`. Note that default port (`9999`) is currently hardcoded.
+
+Build
+--------
+
+You can skip the Javascript tests (which requires npm) by building the project using the `skipJS` profile: `mvn clean install -PskipJS`
 
 License
 --------

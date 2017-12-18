@@ -22,6 +22,23 @@ package org.sonar.java.viewer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.sonar.sslr.api.typed.ActionParser;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.CheckForNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.java.ast.ASTDotGraph;
@@ -39,26 +56,7 @@ import org.sonar.plugins.java.api.tree.Tree;
 import spark.ModelAndView;
 import spark.Request;
 import spark.template.velocity.VelocityTemplateEngine;
-
-import javax.annotation.CheckForNull;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import spark.utils.IOUtils;
 
 import static spark.Spark.awaitInitialization;
 import static spark.Spark.exception;
@@ -154,15 +152,13 @@ public class Viewer {
 
   @VisibleForTesting
   static String fileContent(String location) {
-    String result;
     try {
-      Path path = Paths.get(Viewer.class.getResource(location).toURI());
-      result = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-    } catch (URISyntaxException | IOException e) {
+      InputStream reader = Viewer.class.getResourceAsStream(location);
+      return IOUtils.toString(reader);
+    } catch (Exception e) {
       LOGGER.error("Unable to read file at location: " + location + ".", e);
-      result = "// Unable to read file at location: \"" + location + "\"\\n\\n";
     }
-    return result;
+    return "// Unable to read file at location:\n// \"" + location + "\"\n";
   }
 
   public static class Base {
@@ -216,10 +212,12 @@ public class Viewer {
 
     @CheckForNull
     private static MethodTree getFirstMethodOrConstructor(CompilationUnitTree cut) {
-      ClassTree classTree = (ClassTree) cut.types().get(0);
-      return (MethodTree) classTree.members().stream()
-        .filter(m -> m.is(Tree.Kind.METHOD, Tree.Kind.CONSTRUCTOR))
+      return (MethodTree) cut.types().stream()
         .findFirst()
+        .map(ClassTree.class::cast)
+        .map(ClassTree::members)
+        .map(List::stream)
+        .flatMap(members -> members.filter(m -> m.is(Tree.Kind.METHOD, Tree.Kind.CONSTRUCTOR)).findFirst())
         .orElse(null);
     }
   }
