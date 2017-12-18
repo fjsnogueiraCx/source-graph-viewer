@@ -19,12 +19,10 @@
  */
 package org.sonar.java.cfg;
 
+import java.util.List;
+import javax.annotation.CheckForNull;
 import org.sonar.java.viewer.DotGraph;
 import org.sonar.java.viewer.dto.CommonDto;
-
-import javax.annotation.CheckForNull;
-
-import java.util.List;
 
 public class CFGDotGraph extends DotGraph {
 
@@ -39,7 +37,7 @@ public class CFGDotGraph extends DotGraph {
     List<CFG.Block> blocks = cfg.blocks();
 
     // nodes
-    int firstBlockId = blocks.size() - 1;
+    int firstBlockId = cfg.entry().id();
     blocks.stream()
       .map(CFG.Block::id)
       .map(id -> new CFGDotNode(id, id == firstBlockId))

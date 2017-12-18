@@ -67,4 +67,31 @@ public class CFGDotGraphTest {
     assertThat(cfgDotGraph.toDot())
       .isEqualTo("graph CFG {5[label=\"B5 (START)\",highlighting=\"firstNode\"];4[label=\"B4\"];3[label=\"B3\"];2[label=\"B2\"];1[label=\"B1\"];0[label=\"B0 (EXIT)\",highlighting=\"exitNode\"];5->4[];4->2[];4->0[label=\"EXCEPTION\",highlighting=\"exceptionEdge\"];4->3[label=\"EXCEPTION\",highlighting=\"exceptionEdge\"];3->1[];2->1[];1->0[label=\"EXIT\"];5[label=\"B5 (START)\",highlighting=\"firstNode\"];4[label=\"B4\"];3[label=\"B3\"];2[label=\"B2\"];1[label=\"B1\"];0[label=\"B0 (EXIT)\",highlighting=\"exitNode\"];5->4[];4->2[];4->0[label=\"EXCEPTION\",highlighting=\"exceptionEdge\"];4->3[label=\"EXCEPTION\",highlighting=\"exceptionEdge\"];3->1[];2->1[];1->0[label=\"EXIT\"];}");
   }
+
+  @Test
+  public void entry_block_is_not_first_block() {
+    String code = "class A {\n" +
+      "  public int test(E e) {\n" +
+      "    switch (e) {\n" +
+      "      case A:\n" +
+      "        return 3;\n" +
+      "      case B:\n" +
+      "        return 2;\n" +
+      "      default:\n" +
+      "        throw new IllegalArgumentException();\n" +
+      "    }\n" +
+      "  }\n" +
+      "\n" +
+      "  public enum E {\n" +
+      "    A, B\n" +
+      "  }\n" +
+      "}";
+
+    Viewer.Base base = new Viewer.Base(code);
+
+    CFGDotGraph cfgDotGraph = new CFGDotGraph(base.cfgFirstMethodOrConstructor);
+    cfgDotGraph.build();
+
+    assertThat(cfgDotGraph.toDot()).contains("1[label=\"B1 (START)\",highlighting=\"firstNode\"];");
+  }
 }
