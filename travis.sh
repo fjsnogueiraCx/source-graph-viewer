@@ -7,6 +7,7 @@ function configureTravis {
   source ~/.local/bin/install
 }
 configureTravis
+. ~/.local/bin/installMaven35
 
 . installJDK8
 
